@@ -7,10 +7,22 @@
 #include <errno.h>
 #include <string.h>
 #include <sys/types.h>
+#include <pthread.h>
+
 
 struct User{
     int id;
     char name[100];
+};
+
+pthread_t child[10000];
+pthread_mutex_t lock; 
+struct User connected_users[10000];
+int user_count = 0;
+
+
+struct thread_args{
+    struct User arg_user;
 };
 
 int send_to_client(char message[], int clientfd){
@@ -18,14 +30,14 @@ int send_to_client(char message[], int clientfd){
     return 0;
 }
 
-void notify_all(struct User connected_users[10000], int user_count, struct User new_user){
+void notify_all(struct User connected_users[10000], int user_count, struct User new_user, char *action){
     int clientfd;
     char buff[15];
     char *message = (char *)malloc(strlen(new_user.name) + 3 + strlen("-joined") + 1);
 
     strcat(message, new_user.name);
     strcat(message, "-");
-    snprintf(buff, 15, "%d Joined\n", new_user.id);
+    snprintf(buff, 15, "%d %s\n", new_user.id, action);
     strcat(message, buff);
     printf("notifying all-%s\n", message);
 
@@ -62,11 +74,12 @@ void remove_user(int clientfd, struct User connected_users[], int user_count){
     
     for(int i = 0; i < user_count; i++){
         printf("found %d need %d\n", connected_users[i].id, clientfd);
-        if(connected_users[user_count].id == clientfd){
+        if(connected_users[i].id == clientfd){
             printf("Found and removing! %d\n", connected_users[i].id);
             if(i == user_count - 1){
                 struct User n;
                 connected_users[i] = n;
+                return;
             }
             for(int j = i; j < user_count; j++){
                 connected_users[j] = connected_users[j + 1];
@@ -90,6 +103,31 @@ int recieve_from_client(int clientfd){
 
     return 0;
 }
+
+void *handle_client(void *_args){
+    // close(listenfd);
+    struct thread_args *args = (struct thread_args *)_args;
+    int connfd = args->arg_user.id;
+
+    printf("starting thread for %d\n", connfd);
+
+    recieve_from_client(connfd);
+    printf("closing %d\n", connfd);
+
+// lock starts
+    pthread_mutex_lock(&lock);
+
+    user_count --;
+    remove_user(connfd, connected_users, user_count+1);
+    notify_all(connected_users, user_count, args->arg_user, "Left");
+
+    pthread_mutex_unlock(&lock);
+// unlocked!
+
+    close(connfd);
+    free(args);
+    // exit(0);
+}
  
 int main(void){
     int listenfd = 0,connfd = 0;
@@ -101,9 +139,6 @@ int main(void){
     char name[100]; 
     int numrv;  
     pid_t pid;
-
-    struct User connected_users[10000];
-    int user_count = 0;
  
     listenfd = socket(AF_INET, SOCK_STREAM, 0);
     printf("socket retrieve success\n");
@@ -120,7 +155,12 @@ int main(void){
     if(listen(listenfd, 10) == -1){
         printf("Failed to listen\n");
         return -1;
-    }     
+    }    
+
+    if (pthread_mutex_init(&lock, NULL) != 0){ 
+        printf("\n mutex init has failed\n"); 
+        return 1; 
+    }  
     
     while(1){      
         connfd = accept(listenfd, (struct sockaddr*)NULL ,NULL); // accept awaiting request
@@ -132,7 +172,7 @@ int main(void){
         new_user.id = connfd;
         strcpy(new_user.name, name);
 
-        notify_all(connected_users, user_count, new_user);
+        notify_all(connected_users, user_count, new_user, "Joined");
 
         user_count ++;
         connected_users[user_count - 1] = new_user;
@@ -143,22 +183,19 @@ int main(void){
         
         printf("connected %s-%d\n", name, connfd);
 
+        struct thread_args *args = malloc(sizeof (struct thread_args));
+        args->arg_user = new_user;
+        printf("did thread start?\n");
+        pthread_create(&child[user_count - 1], NULL, handle_client, args);
 
-        pid = fork();
-        if (pid < 0)
-            perror("ERROR on fork");
+        // pid = fork();
+        // if (pid < 0)
+        //     perror("ERROR on fork");
             
-        if (pid == 0)  {
-            close(listenfd);
-            recieve_from_client(connfd);
-            printf("closing %d\n", connfd);
+        // if (pid == 0)  {
+            
+        // }
 
-            user_count --;
-            remove_user(connfd, connected_users, user_count+1);
-
-            close(connfd);
-            exit(0);
-        }
 
         char *u = get_all_connected_users(connected_users, user_count);
         printf("here-->\n%s", u);
