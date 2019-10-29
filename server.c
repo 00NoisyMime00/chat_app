@@ -89,29 +89,32 @@ void remove_user(int clientfd, struct User connected_users[], int user_count){
     }
 }
 
-int recieve_from_client(int clientfd){
+int recieve_from_client(struct User user){
     char recvBuff[1000];
     int n = 1;
+    int clientfd = user.id;
+
+    char name[100];
+    strcpy(name, user.name);
+
     while(n != 0){
         n = read(clientfd, recvBuff, sizeof(recvBuff)-1);
         recvBuff[n] = 0;
 
-        if(fputs(recvBuff, stdout) == EOF){
-            printf("\n Error : Fputs error");
-      }
+        printf("%s-%d: %s",name, clientfd, recvBuff);
     }
 
     return 0;
 }
 
 void *handle_client(void *_args){
-    // close(listenfd);
+    
     struct thread_args *args = (struct thread_args *)_args;
     int connfd = args->arg_user.id;
 
     printf("starting thread for %d\n", connfd);
 
-    recieve_from_client(connfd);
+    recieve_from_client(args->arg_user);
     printf("closing %d\n", connfd);
 
 // lock starts
@@ -126,7 +129,6 @@ void *handle_client(void *_args){
 
     close(connfd);
     free(args);
-    // exit(0);
 }
  
 int main(void){

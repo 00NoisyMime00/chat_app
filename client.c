@@ -8,6 +8,20 @@
 #include <unistd.h>
 #include <errno.h>
 #include <arpa/inet.h>
+#include <pthread.h>
+
+pthread_t child;
+
+void *recieve_message_thread(void *_args){
+  while(1){
+    int sockfd = *(int *)_args;
+    char str[1024];
+      
+    fgets(str, 1024, stdin);
+    printf("sending- %s\n", str);
+    write(sockfd, str, strlen(str));
+  }
+}
  
 int main(void){
 
@@ -45,48 +59,24 @@ int main(void){
 
   printf("\n");
 
-  // while((n = read(sockfd, recvBuff, sizeof(recvBuff)-1)) > 0){
-  //   recvBuff[n] = 0;
-      
-  //   if(fputs(recvBuff, stdout) == EOF){
-  //     printf("\n Error : Fputs error");
-  //   }
-
-  //   printf("\n");
-  //   strcpy(sendBuff, "Message from client");
-  //   printf("a is hehre");
-  //   write(sockfd, sendBuff, strlen(sendBuff));
-  //   // printf("b");
-  // }
   
   if( n < 0){
 
     printf("\n Read Error \n");
   }
 
-  pid = fork();
+  
+  int *arg = malloc(sizeof(*arg));
+  *arg = sockfd;
+  pthread_create(&child, NULL, recieve_message_thread, arg);
 
-  if (pid < 0)
-      perror("ERROR on fork");
-  if (pid == 0)  {
-    while(1){
-      // printf("this- %d\n", connfd);
-      char str[1024];
-      fgets(str, 1024, stdin);
-      printf("sending- %s\n", str);
-      write(sockfd, str, strlen(str));
-    }
-  }
-  else{
-    while(1){
-      n = read(sockfd, recvBuff, sizeof(recvBuff)-1);
-      recvBuff[n] = 0;
+  while(1){
+    n = read(sockfd, recvBuff, sizeof(recvBuff)-1);
+    recvBuff[n] = 0;
 
-      if(fputs(recvBuff, stdout) == EOF){
-        printf("\n Error : Fputs error");
-      }
-    }
+    printf("\r%s", recvBuff);
   }
+
 
   printf("closed\n");
   return 0;
