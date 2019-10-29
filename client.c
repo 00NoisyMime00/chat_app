@@ -1,6 +1,6 @@
 #include <sys/socket.h>
 #include <sys/types.h>
-#include <netinet/in.h>
+#include <sys/un.h>
 #include <netdb.h>
 #include <stdio.h>
 #include <string.h>
@@ -29,18 +29,17 @@ int main(void){
   char recvBuff[1024];
   char sendBuff[1025];
   char name[] = "anon";
-  struct sockaddr_in serv_addr;
+  struct sockaddr_un serv_addr;
   pid_t pid;
  
   memset(recvBuff, '0' ,sizeof(recvBuff));
-  if((sockfd = socket(AF_INET, SOCK_STREAM, 0))< 0){
+  if((sockfd = socket(AF_UNIX, SOCK_STREAM, 0))< 0){
       printf("\n Error : Could not create socket \n");
       return 1;
   }
  
-  serv_addr.sin_family = AF_INET;
-  serv_addr.sin_port = htons(5000);
-  serv_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+  serv_addr.sun_family = AF_UNIX;
+  strcpy(serv_addr.sun_path, "socket");
  
   if(connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr))<0){
 

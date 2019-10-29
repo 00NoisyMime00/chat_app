@@ -1,5 +1,5 @@
 #include <sys/socket.h>
-#include <netinet/in.h>
+#include <sys/un.h>
 #include <arpa/inet.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -47,16 +47,13 @@ void notify_all(struct User connected_users[10000], int user_count, struct User 
 }
 
 char * get_all_connected_users(struct User connected_users[10000], int user_count){
-    // printf("reached inside!\n");
+    
     char *users = (char *)malloc(10000);
     char buff[3];
-    // strcpy(users, connected_users[0].id);
-    // printf("final %s\n",users);
     for(int i = 0; i < user_count; i++){
         strcat(users, connected_users[i].name);
         strcat(users, "-");
         snprintf(buff, 3, "%d", connected_users[i].id);
-        // printf("buff is %s\n", buff);
         strcat(users, buff);
         strcat(users, "\n");
     }
@@ -68,7 +65,6 @@ void remove_user(int clientfd, struct User connected_users[], int user_count){
     if(user_count == 1 || user_count == 10000){
         struct User n;
         connected_users[0] = n;
-        // printf("%s", connected_users[0].name);
         return;
     }
     
@@ -132,9 +128,10 @@ void *handle_client(void *_args){
 }
  
 int main(void){
+    char socketname[] = "socket";
     int listenfd = 0,connfd = 0;
   
-    struct sockaddr_in serv_addr;
+    struct sockaddr_un serv_addr;
  
     char sendBuff[1025];
     char readBuff[1025]; 
@@ -142,16 +139,17 @@ int main(void){
     int numrv;  
     pid_t pid;
  
-    listenfd = socket(AF_INET, SOCK_STREAM, 0);
+    listenfd = socket(AF_UNIX, SOCK_STREAM, 0);
     printf("socket retrieve success\n");
 
     memset(&serv_addr, '0', sizeof(serv_addr));
     memset(sendBuff, '0', sizeof(sendBuff));
       
-    serv_addr.sin_family = AF_INET;    
-    serv_addr.sin_addr.s_addr = htonl(INADDR_ANY); 
-    serv_addr.sin_port = htons(5000);    
+    serv_addr.sun_family = AF_UNIX;    
+    strcpy(serv_addr.sun_path, socketname);
     
+    // unlinking is important ref: https://troydhanson.github.io/network/Unix_domain_sockets.html
+    unlink(socketname);
     bind(listenfd, (struct sockaddr*)&serv_addr,sizeof(serv_addr));
     
     if(listen(listenfd, 10) == -1){
@@ -189,14 +187,6 @@ int main(void){
         args->arg_user = new_user;
         printf("did thread start?\n");
         pthread_create(&child[user_count - 1], NULL, handle_client, args);
-
-        // pid = fork();
-        // if (pid < 0)
-        //     perror("ERROR on fork");
-            
-        // if (pid == 0)  {
-            
-        // }
 
 
         char *u = get_all_connected_users(connected_users, user_count);
