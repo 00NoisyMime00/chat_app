@@ -1,0 +1,17 @@
+Description:
+    A chat app for Linux that uses sockets in UNIX Domain and TCP to communicate. 
+    There is a main server file that opens the port and the client files can connect 
+    to the server.
+    
+    Once connected, each client can either participate in a group chat or message  
+    any connected user personally.
+    
+    Every time a user connects, he/she is assigned a unique ID by the server which 
+    can be used by others to message him personally.
+
+    
+    '#h'- for help, which brings the help menu
+    '#a'- shows all active users
+    '#c'- Shows who you are messaging currently
+    '#i'- Shows Your unique ID assigned by the server
+    '#any_correct_client_ID'- Switches you to message that particular client(0 for the group chat)
