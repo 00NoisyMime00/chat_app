@@ -8,4 +8,4 @@ server: server.o
 	$(CC) -o $@ $^ $(CFLAGS)
 
 client: client.o
-	$(CC) -o $@ client.o $(CFLAGS)
+	$(CC) -o $@ $^ $(CFLAGS)
