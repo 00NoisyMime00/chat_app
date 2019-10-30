@@ -12,6 +12,7 @@
 
 pthread_t child;
 
+// Thread function to receive messages from the server
 void *recieve_message_thread(void *_args){
   while(1){
     int sockfd = *(int *)_args;

@@ -9,6 +9,11 @@ Description:
     Every time a user connects, he/she is assigned a unique ID by the server which 
     can be used by others to message him personally.
 
+    The System uses threads, the server creates a new thread every time a new
+    user is created and the thread continuously listens for user input and act accordingly.
+    The client creates a new thread which continuously listens for inputs from the server
+    while the main thread takes input from user and sends it to the server.
+
     
     '#h'- for help, which brings the help menu
     '#a'- shows all active users
