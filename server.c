@@ -10,7 +10,7 @@
 #include <pthread.h>
 #include <ctype.h>
 
-
+// Structure for each user/client
 struct User{
     int id;
     char name[100];
@@ -18,24 +18,25 @@ struct User{
 
 pthread_t child[10000];
 pthread_mutex_t lock; 
-struct User connected_users[10000];
-int user_count = 0;
+struct User connected_users[10000]; //stores all connected users
+int user_count = 0; //Total active users
 
-
+// For thread arguments
 struct thread_args{
     struct User arg_user;
 };
 
 
+// Function to send message to a client with ID clientfd
 int send_to_client(char message[], int clientfd){
     char *m = (char *)malloc(strlen(message) + strlen("You: ")+5);
     strcpy(m, message);
     strcat(m, "\nyou: ");
-    // printf("here? %s\n", m);
     write(clientfd, m, strlen(m));
     return 0;
 }
 
+// Function to send messages in group chat
 void group_chat(char message[], struct User connected_users[], int user_count, int sender){
     for(int i = 0; i < user_count; i++){
         if(connected_users[i].id != sender)
@@ -43,6 +44,7 @@ void group_chat(char message[], struct User connected_users[], int user_count, i
     }
 }
 
+// Function to alert everyone when a user Joins or Exits
 void notify_all(struct User connected_users[10000], int user_count, struct User new_user, char *action){
     int clientfd;
     char buff[15];
@@ -59,6 +61,7 @@ void notify_all(struct User connected_users[10000], int user_count, struct User 
     }
 }
 
+// Function to get all current active users
 char * get_all_connected_users(struct User connected_users[10000], int user_count){
     
     char *users = (char *)malloc(10000);
@@ -73,6 +76,7 @@ char * get_all_connected_users(struct User connected_users[10000], int user_coun
     return users;
 }
 
+// Function to remove a user
 void remove_user(int clientfd, struct User connected_users[], int user_count){
     printf("trying to remove %d from total %d users online!\n", clientfd, user_count);
     if(user_count == 1 || user_count == 10000){
@@ -98,6 +102,7 @@ void remove_user(int clientfd, struct User connected_users[], int user_count){
     }
 }
 
+// Function to check if a particular user is active or not
 int check_validity_of_fd(int fd, struct User connected_users[], int user_count){
     for(int i = 0; i < user_count; i++){
         if(fd == connected_users[i].id)
@@ -106,6 +111,7 @@ int check_validity_of_fd(int fd, struct User connected_users[], int user_count){
     return 0;
 }
 
+// Function to recieve messages from users/clients
 int recieve_from_client(struct User user, int *chat_option){
     char recvBuff[1000];
     int n = 1;
@@ -224,6 +230,7 @@ int recieve_from_client(struct User user, int *chat_option){
     return 0;
 }
 
+// Thread function, for each user a new thread is created
 void *handle_client(void *_args){
     
     struct thread_args *args = (struct thread_args *)_args;
