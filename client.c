@@ -16,9 +16,8 @@ void *recieve_message_thread(void *_args){
   while(1){
     int sockfd = *(int *)_args;
     char str[1024];
-      
+    
     fgets(str, 1024, stdin);
-    printf("sending- %s\n", str);
     write(sockfd, str, strlen(str));
   }
 }
@@ -52,20 +51,17 @@ int main(void){
   n = read(sockfd, recvBuff, sizeof(recvBuff)-1);
   recvBuff[n] = 0;
 
-  if(fputs(recvBuff, stdout) == EOF){
-    printf("\n Error : Fputs error");
-  }
 
-  printf("\n");
+  printf("\r%s", recvBuff);
+  fflush(stdout);
 
-  
   if( n < 0){
 
     printf("\n Read Error \n");
   }
 
   
-  int *arg = malloc(sizeof(*arg));
+  int *arg = (int *)malloc(sizeof(*arg));
   *arg = sockfd;
   pthread_create(&child, NULL, recieve_message_thread, arg);
 
@@ -74,6 +70,7 @@ int main(void){
     recvBuff[n] = 0;
 
     printf("\r%s", recvBuff);
+    fflush(stdout);
   }
 
 

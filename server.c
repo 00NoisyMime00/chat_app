@@ -8,6 +8,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <pthread.h>
+#include <ctype.h>
 
 
 struct User{
@@ -25,17 +26,29 @@ struct thread_args{
     struct User arg_user;
 };
 
+
 int send_to_client(char message[], int clientfd){
-    write(clientfd, message, strlen(message));
+    char *m = (char *)malloc(strlen(message) + strlen("You: ")+5);
+    strcpy(m, message);
+    strcat(m, "\nyou: ");
+    // printf("here? %s\n", m);
+    write(clientfd, m, strlen(m));
     return 0;
+}
+
+void group_chat(char message[], struct User connected_users[], int user_count, int sender){
+    for(int i = 0; i < user_count; i++){
+        if(connected_users[i].id != sender)
+            send_to_client(message, connected_users[i].id);
+    }
 }
 
 void notify_all(struct User connected_users[10000], int user_count, struct User new_user, char *action){
     int clientfd;
     char buff[15];
-    char *message = (char *)malloc(strlen(new_user.name) + 3 + strlen("-joined") + 1);
+    char *message = (char *)malloc(strlen("-14 Joined\n")+strlen(new_user.name));
 
-    strcat(message, new_user.name);
+    strcpy(message, new_user.name);
     strcat(message, "-");
     snprintf(buff, 15, "%d %s\n", new_user.id, action);
     strcat(message, buff);
@@ -85,7 +98,15 @@ void remove_user(int clientfd, struct User connected_users[], int user_count){
     }
 }
 
-int recieve_from_client(struct User user){
+int check_validity_of_fd(int fd, struct User connected_users[], int user_count){
+    for(int i = 0; i < user_count; i++){
+        if(fd == connected_users[i].id)
+            return 1;
+    }
+    return 0;
+}
+
+int recieve_from_client(struct User user, int *chat_option){
     char recvBuff[1000];
     int n = 1;
     int clientfd = user.id;
@@ -95,9 +116,111 @@ int recieve_from_client(struct User user){
 
     while(n != 0){
         n = read(clientfd, recvBuff, sizeof(recvBuff)-1);
-        recvBuff[n] = 0;
+        
+        if(n == 0){
+            return 0;
+        }
 
-        printf("%s-%d: %s",name, clientfd, recvBuff);
+        recvBuff[n] = 0;
+        char buff[3];
+
+
+        if(n == 3 && recvBuff[0] == '#'){
+            if(recvBuff[1] == '0'){
+                *chat_option = 0;
+                send_to_client("\n Switched to Group chat!\n", clientfd);
+            }
+            else if(recvBuff[1] == 'a'){
+                char * message = (char *)malloc(23+sizeof(get_all_connected_users(connected_users, user_count)));
+                strcpy(message, "All Active Users:\n");
+                strcat(message, get_all_connected_users(connected_users, user_count));
+                send_to_client(message, clientfd);
+            }
+            else if(recvBuff[1] == 'h'){
+                char * message = "------HELP-------\n#h - help\n#a - Show all connected users\n#c - Get the person you're currently messaging\n#i - Get Your ID\n#client_id - message the respective client(0 for group)\n";
+                send_to_client(message, clientfd);
+            }
+            else if(recvBuff[1] == 'i'){
+                char *message = (char *)malloc(strlen("Your ID is: 55\n") + 1);
+                sprintf(message, "Your ID is: %d\n", clientfd);
+                printf("the message is: %s", message);
+                send_to_client(message, clientfd);
+                
+            }
+            else if(recvBuff[1] == 'c'){
+                char *message = (char *)malloc(sizeof("You are messaging: 55")+1);
+                sprintf(message, "You are messaging: %d\n", *chat_option);
+                // write(clientfd, message, strlen(message));
+                send_to_client(message, clientfd);
+            }
+            else if(isdigit(recvBuff[1]) && atoi(&recvBuff[1]) != clientfd){
+                (*chat_option) = atoi(&recvBuff[1]);
+                printf("chat option is %d\n", *chat_option);
+                if(!check_validity_of_fd(*chat_option, connected_users, user_count) || *chat_option == clientfd){
+                    send_to_client("ERROR!, either the ID is Invalid or Disconnected, Switching to group chat!\n", clientfd);
+                    *chat_option = 0;
+                }
+                else{
+                    char *message = (char *)malloc(sizeof("\nSending message to client with ID 5\n"));
+                    sprintf(message, "\nSending message to client with ID %d\n", *chat_option);
+                    send_to_client(message, clientfd);
+                }
+            }
+            else{
+                send_to_client("INVALID COMMAND!!\n", clientfd);
+            }
+        }
+
+        else if((n == 4) && recvBuff[0] == '#'){
+            if(isdigit(recvBuff[1]) && isdigit(recvBuff[2])){
+                // printf("r1: %s r2:%s\n", &recvBuff[1], &recvBuff[2]);
+                (*chat_option) = atoi(&recvBuff[1]);
+                printf("chat option is %d\n", *chat_option);
+                if(!check_validity_of_fd(*chat_option, connected_users, user_count) || *chat_option == clientfd){
+                    send_to_client("ERROR!, either the ID is Invalid or Disconnected, Switching to group chat!\n", clientfd);
+                    *chat_option = 0;
+                }
+                else{
+                    char *message = (char *)malloc(sizeof("\nSending message to client with ID 5\n"));
+                    sprintf(message, "\nSending message to client with ID %d\n", *chat_option);
+                    send_to_client(message, clientfd);
+                }
+            }
+            else{
+                send_to_client("INVALID COMMAND!!\n", clientfd);
+            }
+        }
+        else{
+
+            char *message = (char *)malloc(sizeof(name)+5+sizeof(recvBuff));
+            strcpy(message, name);
+            strcat(message, "-");
+            snprintf(buff, 3, "%d", clientfd);
+            strcat(message, buff);
+            strcat(message, ":");
+            
+            strcat(message, recvBuff);
+            printf("message: %s", message);
+
+            printf("chat option is %d and clientfd is %d\n", *chat_option, clientfd);
+            if(*chat_option == 0){
+                group_chat(message, connected_users, user_count, clientfd);
+                send_to_client("", clientfd);
+            }
+            else{
+                printf("checking validity %d\n", check_validity_of_fd(*chat_option, connected_users, user_count));
+                if(check_validity_of_fd(*chat_option, connected_users, user_count) && *chat_option != clientfd){
+                    printf("chat option found..");
+                    send_to_client(message, *chat_option);
+                    send_to_client("", clientfd);
+                }
+                else{
+                    send_to_client("Person You're trying to message maybe left, Changed to default group chat!\n", clientfd);
+                    printf("changing chat option to default 0\n");
+                    *chat_option = 0;
+                }
+            }
+        }
     }
 
     return 0;
@@ -107,10 +230,11 @@ void *handle_client(void *_args){
     
     struct thread_args *args = (struct thread_args *)_args;
     int connfd = args->arg_user.id;
+    int chat_option = 0;
 
     printf("starting thread for %d\n", connfd);
 
-    recieve_from_client(args->arg_user);
+    recieve_from_client(args->arg_user, &chat_option);
     printf("closing %d\n", connfd);
 
 // lock starts
@@ -179,19 +303,19 @@ int main(void){
 
         strcpy(sendBuff, "You are connected to server!\nAll Users:\n");
         strcat(sendBuff, get_all_connected_users(connected_users, user_count));
-        write(connfd, sendBuff, strlen(sendBuff));
+        // write(connfd, sendBuff, strlen(sendBuff));
+        send_to_client(sendBuff, connfd);
         
         printf("connected %s-%d\n", name, connfd);
 
-        struct thread_args *args = malloc(sizeof (struct thread_args));
+        struct thread_args *args = (struct thread_args *)malloc(sizeof (struct thread_args));
         args->arg_user = new_user;
-        printf("did thread start?\n");
         pthread_create(&child[user_count - 1], NULL, handle_client, args);
 
 
-        char *u = get_all_connected_users(connected_users, user_count);
-        printf("here-->\n%s", u);
-        printf("---end---\n");
+        // char *u = get_all_connected_users(connected_users, user_count);
+        // printf("here-->\n%s", u);
+        // printf("---end---\n");
            
         sleep(1);
     } 
