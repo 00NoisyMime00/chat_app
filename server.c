@@ -150,7 +150,6 @@ int recieve_from_client(struct User user, int *chat_option){
             else if(recvBuff[1] == 'c'){
                 char *message = (char *)malloc(sizeof("You are messaging: 55")+1);
                 sprintf(message, "You are messaging: %d\n", *chat_option);
-                // write(clientfd, message, strlen(message));
                 send_to_client(message, clientfd);
             }
             else if(isdigit(recvBuff[1]) && atoi(&recvBuff[1]) != clientfd){
@@ -173,7 +172,6 @@ int recieve_from_client(struct User user, int *chat_option){
 
         else if((n == 4) && recvBuff[0] == '#'){
             if(isdigit(recvBuff[1]) && isdigit(recvBuff[2])){
-                // printf("r1: %s r2:%s\n", &recvBuff[1], &recvBuff[2]);
                 (*chat_option) = atoi(&recvBuff[1]);
                 printf("chat option is %d\n", *chat_option);
                 if(!check_validity_of_fd(*chat_option, connected_users, user_count) || *chat_option == clientfd){
@@ -303,7 +301,6 @@ int main(void){
 
         strcpy(sendBuff, "You are connected to server!\nAll Users:\n");
         strcat(sendBuff, get_all_connected_users(connected_users, user_count));
-        // write(connfd, sendBuff, strlen(sendBuff));
         send_to_client(sendBuff, connfd);
         
         printf("connected %s-%d\n", name, connfd);
@@ -311,11 +308,6 @@ int main(void){
         struct thread_args *args = (struct thread_args *)malloc(sizeof (struct thread_args));
         args->arg_user = new_user;
         pthread_create(&child[user_count - 1], NULL, handle_client, args);
-
-
-        // char *u = get_all_connected_users(connected_users, user_count);
-        // printf("here-->\n%s", u);
-        // printf("---end---\n");
            
         sleep(1);
     } 

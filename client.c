@@ -22,14 +22,22 @@ void *recieve_message_thread(void *_args){
   }
 }
  
-int main(void){
+int main(int argc, char *argv[]){
 
   int sockfd = 0,n = 0;
   char recvBuff[1024];
   char sendBuff[1025];
-  char name[] = "anon";
+  char name[100] = "anon";
   struct sockaddr_un serv_addr;
   pid_t pid;
+
+  if(argc == 2){
+    strcpy(name, argv[1]);
+  }
+  else if(argc > 2){
+    printf("Too many arguments supplied!!\n");
+    exit(0);
+  }
  
   memset(recvBuff, '0' ,sizeof(recvBuff));
   if((sockfd = socket(AF_UNIX, SOCK_STREAM, 0))< 0){
