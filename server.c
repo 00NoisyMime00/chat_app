@@ -9,6 +9,7 @@
 #include <sys/types.h>
 #include <pthread.h>
 #include <ctype.h>
+#include <signal.h>
 
 // Structure for each user/client
 struct User{
@@ -129,8 +130,13 @@ int recieve_from_client(struct User user, int *chat_option){
         recvBuff[n] = 0;
         char buff[3];
 
-
-        if(n == 3 && recvBuff[0] == '#'){
+        // for exiting
+        if(recvBuff[0]=='#' && recvBuff[1]=='e' && recvBuff[2]=='x' && recvBuff[3]=='i' && recvBuff[4]=='t'){
+            
+            remove_user(clientfd, connected_users, user_count);
+            write(clientfd, "#exit", strlen("#exit"));
+        }
+        else if(n == 3 && recvBuff[0] == '#'){
             if(recvBuff[1] == '0'){
                 *chat_option = 0;
                 send_to_client("\n Switched to Group chat!\n", clientfd);
@@ -142,7 +148,7 @@ int recieve_from_client(struct User user, int *chat_option){
                 send_to_client(message, clientfd);
             }
             else if(recvBuff[1] == 'h'){
-                char * message = "------HELP-------\n#h - help\n#a - Show all connected users\n#c - Get the person you're currently messaging\n#i - Get Your ID\n#client_id - message the respective client(0 for group)\n";
+                char * message = "------HELP-------\n#h - help\n#a - Show all connected users\n#exit - Exit\n#c - Get the person you're currently messaging\n#i - Get Your ID\n#client_id - message the respective client(0 for group)\n";
                 send_to_client(message, clientfd);
             }
             else if(recvBuff[1] == 'i'){
@@ -255,7 +261,10 @@ void *handle_client(void *_args){
     free(args);
 }
  
+
 int main(void){
+
+
     char socketname[] = "socket";
     int listenfd = 0,connfd = 0;
   
