@@ -1,6 +1,6 @@
 #include <sys/socket.h>
 #include <sys/types.h>
-#include <netinet/in.h>
+#include <sys/un.h>
 #include <netdb.h>
 #include <stdio.h>
 #include <string.h>
@@ -8,25 +8,46 @@
 #include <unistd.h>
 #include <errno.h>
 #include <arpa/inet.h>
+#include <pthread.h>
+
+pthread_t child;
+
+// Thread function to receive messages from the server
+void *recieve_message_thread(void *_args){
+  while(1){
+    int sockfd = *(int *)_args;
+    char str[1024];
+    
+    fgets(str, 1024, stdin);
+    write(sockfd, str, strlen(str));
+  }
+}
  
-int main(void){
+int main(int argc, char *argv[]){
 
   int sockfd = 0,n = 0;
   char recvBuff[1024];
   char sendBuff[1025];
-  char name[] = "anon";
-  struct sockaddr_in serv_addr;
+  char name[100] = "anon";
+  struct sockaddr_un serv_addr;
   pid_t pid;
+
+  if(argc == 2){
+    strcpy(name, argv[1]);
+  }
+  else if(argc > 2){
+    printf("Too many arguments supplied!!\n");
+    exit(0);
+  }
  
   memset(recvBuff, '0' ,sizeof(recvBuff));
-  if((sockfd = socket(AF_INET, SOCK_STREAM, 0))< 0){
+  if((sockfd = socket(AF_UNIX, SOCK_STREAM, 0))< 0){
       printf("\n Error : Could not create socket \n");
       return 1;
   }
  
-  serv_addr.sin_family = AF_INET;
-  serv_addr.sin_port = htons(5000);
-  serv_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+  serv_addr.sun_family = AF_UNIX;
+  strcpy(serv_addr.sun_path, "socket");
  
   if(connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr))<0){
 
@@ -39,54 +60,33 @@ int main(void){
   n = read(sockfd, recvBuff, sizeof(recvBuff)-1);
   recvBuff[n] = 0;
 
-  if(fputs(recvBuff, stdout) == EOF){
-    printf("\n Error : Fputs error");
-  }
 
-  printf("\n");
+  printf("\r%s", recvBuff);
+  fflush(stdout);
 
-  // while((n = read(sockfd, recvBuff, sizeof(recvBuff)-1)) > 0){
-  //   recvBuff[n] = 0;
-      
-  //   if(fputs(recvBuff, stdout) == EOF){
-  //     printf("\n Error : Fputs error");
-  //   }
-
-  //   printf("\n");
-  //   strcpy(sendBuff, "Message from client");
-  //   printf("a is hehre");
-  //   write(sockfd, sendBuff, strlen(sendBuff));
-  //   // printf("b");
-  // }
-  
   if( n < 0){
 
     printf("\n Read Error \n");
   }
 
-  pid = fork();
 
-  if (pid < 0)
-      perror("ERROR on fork");
-  if (pid == 0)  {
-    while(1){
-      // printf("this- %d\n", connfd);
-      char str[1024];
-      fgets(str, 1024, stdin);
-      printf("sending- %s\n", str);
-      write(sockfd, str, strlen(str));
-    }
-  }
-  else{
-    while(1){
-      n = read(sockfd, recvBuff, sizeof(recvBuff)-1);
-      recvBuff[n] = 0;
+// get the help menu
+  write(sockfd, "#h", 3);
 
-      if(fputs(recvBuff, stdout) == EOF){
-        printf("\n Error : Fputs error");
-      }
-    }
+  
+  int *arg = (int *)malloc(sizeof(*arg));
+  *arg = sockfd;
+  pthread_create(&child, NULL, recieve_message_thread, arg);
+
+  while(1){
+    n = read(sockfd, recvBuff, sizeof(recvBuff)-1);
+    recvBuff[n] = 0;
+
+    printf("\r%s", recvBuff);
+    fflush(stdout);
   }
+  
+
 
   printf("closed\n");
   return 0;
