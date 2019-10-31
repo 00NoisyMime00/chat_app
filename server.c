@@ -86,7 +86,6 @@ void remove_user(int clientfd, struct User connected_users[], int user_count){
     }
     
     for(int i = 0; i < user_count; i++){
-        printf("found %d need %d\n", connected_users[i].id, clientfd);
         if(connected_users[i].id == clientfd){
             printf("Found and removing! %d\n", connected_users[i].id);
             if(i == user_count - 1){

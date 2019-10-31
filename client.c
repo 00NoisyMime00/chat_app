@@ -69,6 +69,10 @@ int main(int argc, char *argv[]){
     printf("\n Read Error \n");
   }
 
+
+// get the help menu
+  write(sockfd, "#h", 3);
+
   
   int *arg = (int *)malloc(sizeof(*arg));
   *arg = sockfd;
@@ -81,6 +85,7 @@ int main(int argc, char *argv[]){
     printf("\r%s", recvBuff);
     fflush(stdout);
   }
+  
 
 
   printf("closed\n");
