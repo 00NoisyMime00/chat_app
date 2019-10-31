@@ -17,6 +17,7 @@ Description:
     
     '#h'- for help, which brings the help menu
     '#a'- shows all active users
+    '#exit' - Exits the chat
     '#c'- Shows who you are messaging currently
     '#i'- Shows Your unique ID assigned by the server
     '#any_correct_client_ID'- Switches you to message that particular client(0 for the group chat)
@@ -49,6 +50,11 @@ Testing:
     
     Testing help menu:
         -Sending '#h' anywhere should bring the help menu
+    
+
+    Testing exit:
+        -Send '#exit' to exit the chat with a message, "Goodbye, come back again!"
+        -Send '^c' to exit with the above message
 
 Handled Errors:
     -If the client does not provide a name, the server provides the name and the program does not crash
@@ -59,4 +65,5 @@ Handled Errors:
         group chat and the program does not crash
     -Taken care of race conditions if 2 users leave together, the thread waits the other
         thread to unlock and then removes the new user
+    -Handled SIGINT or '^c' which won't crash the program and exits the user normally
     

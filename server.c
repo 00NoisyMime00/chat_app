@@ -9,6 +9,7 @@
 #include <sys/types.h>
 #include <pthread.h>
 #include <ctype.h>
+#include <signal.h>
 
 // Structure for each user/client
 struct User{
@@ -260,7 +261,10 @@ void *handle_client(void *_args){
     free(args);
 }
  
+
 int main(void){
+
+
     char socketname[] = "socket";
     int listenfd = 0,connfd = 0;
   
