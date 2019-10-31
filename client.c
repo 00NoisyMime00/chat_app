@@ -9,6 +9,7 @@
 #include <errno.h>
 #include <arpa/inet.h>
 #include <pthread.h>
+#include <signal.h>
 
 pthread_t child;
 
@@ -23,7 +24,14 @@ void *recieve_message_thread(void *_args){
   }
 }
  
+ void handler(int sig_num){
+   printf("Goodbye, come back again\n");
+   exit(0);
+ }
+
 int main(int argc, char *argv[]){
+
+  signal(SIGINT, handler);
 
   int sockfd = 0,n = 0;
   char recvBuff[1024];
@@ -82,12 +90,16 @@ int main(int argc, char *argv[]){
     n = read(sockfd, recvBuff, sizeof(recvBuff)-1);
     recvBuff[n] = 0;
 
+    if(recvBuff[0]=='#' && recvBuff[1]=='e' && recvBuff[2]=='x' && recvBuff[3]=='i' && recvBuff[4]=='t'){
+        break;
+    }
+
     printf("\r%s", recvBuff);
     fflush(stdout);
   }
   
 
 
-  printf("closed\n");
+  printf("Goodbye, come again!\n");
   return 0;
 }
