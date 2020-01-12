@@ -1,4 +1,5 @@
 Description:
+
     A chat app for Linux that uses sockets in UNIX Domain and TCP to communicate. 
     There is a main server file that opens the port and the client files can connect 
     to the server.
@@ -23,6 +24,7 @@ Description:
     '#any_correct_client_ID'- Switches you to message that particular client(0 for the group chat)
 
 How to setup?
+
     Compiling:
         Run the makefile using the make command, execute the 'server' executable by
         $./server
@@ -31,6 +33,7 @@ How to setup?
         The user name can be left blank and the server provides you with a name
 
 Testing:
+
     You can run the client scipts in 2 or more different terminals.
     
     Testing the Group Chat:
@@ -57,6 +60,7 @@ Testing:
         -Send '^c' to exit with the above message
 
 Handled Errors:
+
     -If the client does not provide a name, the server provides the name and the program does not crash
     -Two clients can have the same name and the program won't crash or confuse 
     -You cannot send yourself a message, if you select it, the program does not crash
